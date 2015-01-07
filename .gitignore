@@ -15,3 +15,9 @@
 
 #Unity3D Generated File On Crash Reports
 sysinfo.txt
+
+# Custom ignores
+Assets/AstarPathfindingProject
+Assets/AstarPathfindingProject.meta
+Assets/SampleAssets
+Assets/SampleAssets.meta
