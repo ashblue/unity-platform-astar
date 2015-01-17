@@ -69,7 +69,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   end: {fileID: 445668}
   costFactor: 1
-  oneWay: 0
+  oneWay: 1
   deleteConnection: 0
   linkColor: {r: .957200885, g: 0, b: .970588207, a: .509803951}
 --- !u!1001 &100100000
