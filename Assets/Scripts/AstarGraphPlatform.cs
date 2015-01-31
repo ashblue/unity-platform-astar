@@ -36,7 +36,9 @@ namespace Astar {
 
 			// Attempt to generate links
 			Astar.AstarPlatformHelper platformHelper = Astar.AstarPlatformHelper.current;
-			if (platformHelper != null) platformHelper.CreateLinks(this, nodeLedges);
+			if (platformHelper != null) {
+				platformHelper.CreateLinks(this, nodeLedges);
+			}
 
 			// Plug the graph points
 			foreach (Pathfinding.GraphNode n in nodeBlacklist) {
