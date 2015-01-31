@@ -3,6 +3,32 @@ using System.Collections;
 using System.Collections.Generic;
 
 namespace Astar {
+	public enum LinkType {
+		Jump,
+		Fall,
+		Runoff,
+		Move,
+		Undefined
+	}
+
+	// Special link class aimed at housing a data structure for double dictionary keys
+	public class PathLink {
+		public Dictionary<Pathfinding.GraphNode, LinkType> links = new Dictionary<Pathfinding.GraphNode, LinkType>();
+
+		public void SetLink (Pathfinding.GraphNode node, LinkType link) {
+			links[node] = link;
+		}
+
+		public bool HasLink (Pathfinding.GraphNode node) {
+			return links.ContainsKey(node);
+		}
+
+		public LinkType GetLinkType (Pathfinding.GraphNode node) {
+			if (!HasLink(node)) return LinkType.Undefined;
+			return links[node];
+		}
+	}
+
 	// Modify the graph at run-time to discover platforms
 	public class AstarPlatformHelper : MonoBehaviour {
 		static public AstarPlatformHelper current;
@@ -20,6 +46,8 @@ namespace Astar {
 		[Header("Debug")]
 		[SerializeField] bool logDetails;
 
+		Dictionary<Pathfinding.GraphNode, PathLink> linkData = new Dictionary<Pathfinding.GraphNode, PathLink>();
+
 		void Awake () {
 			current = this;
 		}
@@ -36,6 +64,7 @@ namespace Astar {
 			foreach (NodeLedge ledge1 in nodeLedges) {
 				Log("New Link Test");
 				Log(ledge1.pos.ToString());
+//				linkData.Add(ledge1.node, new PathLink());
 
 				// Generate jump nodes between ledges
 				foreach (NodeLedge ledge2 in nodeLedges) {
@@ -52,8 +81,8 @@ namespace Astar {
 					if (!gridGraph.Linecast((Vector3)ledge1.node.position, (Vector3)ledge2.node.position)) {
 						Log("Valid link found");
 						Log(((Vector3)ledge2.node.position).ToString());
-
-						SetLink(jumpPrefab, ledge1.pos, ledge2.pos);
+				
+						SetLink(LinkType.Jump, ledge1.node, ledge2.node);
 					}
 				}
 
@@ -72,9 +101,11 @@ namespace Astar {
 					if (hit.collider != null) {
 						Pathfinding.GraphNode node = gridGraph.GetNeighbor(gridGraph.GetNearest(hit.point).node, 0, 1);
 						if (node.Walkable) {
-							Pathfinding.NodeLink runoffLink = SetLink(runoffPrefab, ledge1.pos, (Vector3)node.position);
-							if (Vector3.Distance(ledge1.pos, runoffLink.transform.position) < maxJumpDistance)
-								runoffLink.oneWay = false;
+							bool withinJumpDistance = Vector3.Distance(ledge1.pos, (Vector3)node.position) < maxJumpDistance;
+							SetLink(LinkType.Runoff, ledge1.node, node, !withinJumpDistance);
+//							Pathfinding.NodeLink runoffLink = SetLink(LinkType.Runoff, ledge1.node, node);
+//							if (Vector3.Distance(ledge1.pos, runoffLink.transform.position) < maxJumpDistance)
+//								runoffLink.oneWay = false;
 						}
 					}
 				}
@@ -101,17 +132,39 @@ namespace Astar {
 			RaycastHit2D hit = Physics2D.Raycast(pos, Vector2.up * -1f, Mathf.Infinity, gridGraph.collision.mask);
 			if (hit.collider != null) {
 				Pathfinding.GraphNode node = gridGraph.GetNeighbor(gridGraph.GetNearest(hit.point).node, 0, 1);
-				SetLink(fallPrefab, l.pos, (Vector3)node.position);
+				SetLink(LinkType.Fall, l.node, node);
 			}
 		}
 
-		Pathfinding.NodeLink SetLink (Pathfinding.NodeLink prefab, Vector3 start, Vector3 end) {
-			Pathfinding.NodeLink link = (Pathfinding.NodeLink)Instantiate(prefab);
-			link.transform.position = start;
-			link.end.transform.position = end;
+		Pathfinding.NodeLink SetLink (LinkType linkType, Pathfinding.GraphNode start, Pathfinding.GraphNode end, bool oneWay = true) {		
+			Pathfinding.NodeLink link = (Pathfinding.NodeLink)Instantiate(GetPrefab(linkType));
+			link.transform.position = (Vector3)start.position;
+			link.end.transform.position = (Vector3)end.position;
 			link.transform.SetParent(linkOutput);
+			link.oneWay = oneWay;
+
+			if (!linkData.ContainsKey(start)) linkData[start] = new PathLink();
+			linkData[start].SetLink(end, linkType);
+
+			if (!oneWay) {
+				if (!linkData.ContainsKey(end)) linkData[end] = new PathLink();
+				linkData[end].SetLink(start, linkType);
+			}
 
 			return link;
+		}
+
+		Pathfinding.NodeLink GetPrefab (LinkType t) {
+			if (t == LinkType.Fall) {
+				return fallPrefab;
+			} else if (t == LinkType.Jump) {
+				return jumpPrefab;
+			} else if (t == LinkType.Runoff) {
+				return runoffPrefab;
+			}
+
+			Debug.LogError("Given link type is not supported");
+			return null;
 		}
 		
 		void Log (string s) {

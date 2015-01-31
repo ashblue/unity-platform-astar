@@ -2,6 +2,7 @@
 using System.Collections;
 
 namespace Ai {
+	// Relays mouse position to the seeker so it can be followed on screen
 	public class AiSeekTarget : MonoBehaviour {
 		[SerializeField] bool snapToMouse;
 		[SerializeField] bool groundPos;
