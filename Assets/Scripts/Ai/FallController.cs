@@ -13,7 +13,7 @@ public class FallController : MonoBehaviour {
 	[SerializeField] AnimationCurve fallSpeed = new AnimationCurve(new Keyframe(0f, 4.5f), new Keyframe(10f, 5f));
 
 	[Tooltip("How close to the ledge is considered past the ledge")]
-	[SerializeField] float ledgeOffset = 0.2f;
+	[SerializeField] float ledgeOffset = 0.1f;
 
 	[HideInInspector] public bool falling;
 
@@ -23,14 +23,16 @@ public class FallController : MonoBehaviour {
 		}
 	}
 
-	public void SetPos (Vector3 fallPoint, float moveSpeed, FallCallback callback = null) {
+	public bool SetPos (Vector3 fallPoint, float moveSpeed, FallCallback callback = null) {
 		fallPoint.z = 0f;
 
 		RaycastHit2D groundHit = Physics2D.Raycast(fallPoint, Vector2.up * -1f, Mathf.Infinity, whatIsGround);
 		if (groundHit.collider != null) {
-			Debug.Log(string.Format("Start {0}, End {1}", fallPoint, groundHit.point));
 			StartCoroutine(Fall(fallPoint, groundHit.point, moveSpeed, callback));
+			return true;
 		}
+
+		return false;
 	}
 
 	IEnumerator Fall (Vector3 beginPos, Vector3 endPos, float moveSpeed, FallCallback callback) {
@@ -48,7 +50,7 @@ public class FallController : MonoBehaviour {
 			yield return null;
 		}
 
-		while (transform.position.y > endPos.y) {
+		while (Mathf.Abs(transform.position.y - endPos.y) > 0.1f) {
 			float fallDistance = Vector3.Distance(transform.position, endPos);
 			Vector3 dir = (endPos - transform.position).normalized;
 			dir *= fallSpeed.Evaluate(fallDistance) * Time.fixedDeltaTime;
@@ -57,6 +59,7 @@ public class FallController : MonoBehaviour {
 			yield return null;
 		}
 
+		endPos.x = transform.position.x;
 		transform.position = endPos;
 		
 		if (callback != null) callback();

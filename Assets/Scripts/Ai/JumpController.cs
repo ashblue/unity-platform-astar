@@ -13,6 +13,8 @@ public class JumpController : MonoBehaviour {
 	[Tooltip("How long should the jump take based upon the vertical jump distance")]
 	[SerializeField] AnimationCurve jumpTime = new AnimationCurve(new Keyframe(-10f, 0.85f), new Keyframe(0, 0.55f),  new Keyframe(10f, 0.85f));
 
+	[SerializeField] LayerMask whatIsGround;
+
 	[HideInInspector] public bool hopping = false;
 	
 	void Update() {
@@ -21,14 +23,19 @@ public class JumpController : MonoBehaviour {
 		}
 	}
 
-	public void SetPos (Vector3 pos, JumpCallback callback = null) {
+	public bool SetPos (Vector3 pos, JumpCallback callback = null) {
 		// Just in-case the position includes a z axis
 		pos.z = 0.0f; 
 
-		// Vertical difference of the jump (emulates force)
-		float jumpDif = pos.y - transform.position.y; 
+		RaycastHit2D groundHit = Physics2D.Raycast(pos, Vector2.up * -1f, Mathf.Infinity, whatIsGround);
+		if (groundHit.collider != null) {
+			// Vertical difference of the jump (emulates force)
+			float jumpDif = pos.y - transform.position.y; 
+			StartCoroutine(Hop(groundHit.point, jumpHeight.Evaluate(jumpDif), jumpTime.Evaluate(jumpDif), callback));	
+			return true;
+		}
 
-		StartCoroutine(Hop(pos, jumpHeight.Evaluate(jumpDif), jumpTime.Evaluate(jumpDif), callback));
+		return false;
 	}
 	
 	IEnumerator Hop (Vector3 dest, float hopHeight, float time, JumpCallback callback) {
@@ -45,6 +52,9 @@ public class JumpController : MonoBehaviour {
 			timer += Time.deltaTime / time;
 			yield return null;
 		}
+
+		// Enforce position just to be sure the last frame isn't offset
+		transform.position = dest;
 	
 		if (callback != null) callback();
 		hopping = false;
