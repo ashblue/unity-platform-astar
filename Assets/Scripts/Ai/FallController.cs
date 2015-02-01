@@ -7,12 +7,10 @@ public class FallController : MonoBehaviour {
 	[Tooltip("Simulates jumps by clicking anywhere on the screen")]
 	[SerializeField] bool debugClick;
 
-//	[SerializeField] Transform groundPoint;
-//	float groundPointRadius = 0.3f;
 	[SerializeField] LayerMask whatIsGround;
 
 	[Tooltip("Fall speed based upon distance fallen")]
-	[SerializeField] AnimationCurve fallSpeed = new AnimationCurve(new Keyframe(0, 5f));
+	[SerializeField] AnimationCurve fallSpeed = new AnimationCurve(new Keyframe(0f, 4.5f), new Keyframe(10f, 5f));
 
 	[Tooltip("How close to the ledge is considered past the ledge")]
 	[SerializeField] float ledgeOffset = 0.2f;
@@ -33,8 +31,6 @@ public class FallController : MonoBehaviour {
 			Debug.Log(string.Format("Start {0}, End {1}", fallPoint, groundHit.point));
 			StartCoroutine(Fall(fallPoint, groundHit.point, moveSpeed, callback));
 		}
-		// Raycast down from the passed position to find the floor pos
-
 	}
 
 	IEnumerator Fall (Vector3 beginPos, Vector3 endPos, float moveSpeed, FallCallback callback) {
