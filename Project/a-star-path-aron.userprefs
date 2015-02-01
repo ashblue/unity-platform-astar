@@ -1,0 +1,14 @@
+﻿<Properties>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/AstarPlotPlatforms.cs">
+    <Files>
+      <File FileName="Assets/AstarPathfindingProject/Core/AstarPath.cs" Line="592" Column="43" />
+      <File FileName="Assets/Scripts/AstarPlotPlatforms.cs" Line="18" Column="4" />
+      <File FileName="Assets/AstarPathfindingProject/Generators/GridGenerator.cs" Line="486" Column="1" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+</Properties>
