@@ -146,6 +146,7 @@ namespace Ai {
 					}
 
 					pause = true;
+					currentWaypoint++;
 					return;
 
 				} else if (type == Astar.LinkType.Fall) {
@@ -159,6 +160,7 @@ namespace Ai {
 					}
 
 					pause = true;
+					currentWaypoint++;
 					return;
 				}
 
