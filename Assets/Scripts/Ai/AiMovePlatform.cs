@@ -2,30 +2,40 @@
 using System.Collections;
 
 namespace Ai {
+	[RequireComponent(typeof(JumpController))]
+	[RequireComponent(typeof(FallController))]
 	public class AiMovePlatform : MonoBehaviour {
+		[SerializeField] bool debug;
+
 		[Tooltip("Target we are getting our destination from")]
 		public Transform targetTransform;
 		[HideInInspector] public Seeker seeker;
 		MoveController controller;
 		Pathfinding.PlatformSeeker platformSeeker;
+		JumpController jump;
+		FallController fall;
 		
 		[HideInInspector] public Pathfinding.Path path; //The calculated path
+		Pathfinding.LinkPath linkPath;
 
 		[Tooltip("Minimum move distance")]
 		[SerializeField] float distanceThreshold = 0.5f;
 
 		[Tooltip("The AI's speed per second")]
-		public float speed = 100;
+		public float speed = 2f;
 
 		[Tooltip("The max distance from the AI to a waypoint for it to continue to the next waypoint")]
-		public float nextWaypointDistance = 3;
+		public float nextWaypointDistance = 0.2f;
 
+		bool pause = false; // Pause is triggered when the AI should await a callback from another module
 		int currentWaypoint = 0; // The waypoint we are currently moving towards
 		Vector3 destination = Vector3.zero;
 
 		[Tooltip("Amount of time between updating the destination search")]
 		[SerializeField] float delay = 0.5f;
 		float delayCountdown;
+
+		[SerializeField] LayerMask whatIsGround;
 
 		[Header("Debugging")]
 		bool logPathLinks;
@@ -36,8 +46,22 @@ namespace Ai {
 			seeker = GetComponent<Seeker>();
 			platformSeeker = GetComponent<Pathfinding.PlatformSeeker>();
 			controller = GetComponent<MoveController>();
+			jump = GetComponent<JumpController>();
+			fall = GetComponent<FallController>();
 			
 			delayCountdown = delay;
+
+			// Force snap character's feet to the ground
+			transform.position = GetFootingPos(transform.position);
+		}
+
+		// Returns a downward raycast point, upon failure returns passed position
+		// @NOTE Assumes the player's center is at the bottom middle of their feet
+		Vector3 GetFootingPos (Vector3 pos) {
+			RaycastHit2D hit = Physics2D.Raycast(pos, Vector2.up * -1f, Mathf.Infinity, whatIsGround);
+			if (hit.collider != null) return hit.point;
+
+			return pos;
 		}
 		
 		void OnPathComplete (Pathfinding.Path p) {
@@ -52,7 +76,8 @@ namespace Ai {
 
 		void OnLinkPathComplete (Pathfinding.LinkPath lp) {
 			if (!lp.error) {
-				Debug.Log("AI script received the path successfully");
+				linkPath = lp;
+				currentWaypoint = 0;
 			} else {
 				Debug.LogError("Path failed to properly initialize");
 			}
@@ -60,10 +85,12 @@ namespace Ai {
 		
 		void Update () {
 			delayCountdown -= Time.deltaTime;
+
+			if (pause) return;
+			
 			if (delayCountdown <= 0f ) {
 				// Minimum distance to prevent buggy movement
 				if (Vector3.Distance(destination, targetTransform.position) > distanceThreshold) {
-//					seeker.StartPath(transform.position, targetTransform.position, OnPathComplete);
 					platformSeeker.GetPath(transform.position, targetTransform.position, OnLinkPathComplete);
 					destination = targetTransform.position;
 				}
@@ -71,37 +98,74 @@ namespace Ai {
 				delayCountdown = delay;
 			}
 		}
-		
+
+
+		void SkipNode () {
+			pause = false;
+			Log("Resumed after skipping a node");
+		}
+
+		void Log (string m) {
+			if (debug) Debug.Log(m);
+		}
+
+		void LogError (string m) {
+			if (debug) Debug.LogError(m);
+		}
+
 		void FixedUpdate () {
-			if (path == null) {
-				return; //We have no path to move after yet
+			if (pause) return;
+
+			if (linkPath == null) {
+				return; //We have no path to follow
 			}
 			
-			if (currentWaypoint >= path.vectorPath.Count) {
+			if (currentWaypoint >= linkPath.links.Count) {
 				return; // End Of Path Reached
 			}
 
-			// This is the actual node we are currently examining, look forward 1 step for a comparison
-			// path.path[currentWaypoint]
-
-//			Debug.Log(string.Format("Current target {0}", ((Vector3)path.path[currentWaypoint].position).ToString()));
-
-			// @TODO Debug log here the path type we are currently on
-			// If we can get the start and end node positions, we can discover if we are stepping into a dynamic link
-
-			// @TODO Special foot placement normalizing
+			// Make it so the position is on the same level as our feet
+			Vector3 adjustedPos = linkPath.links[currentWaypoint].pos;
+			adjustedPos.y = transform.position.y;
 			
-			//Direction to the next waypoint
-			Vector3 dir = (path.vectorPath[currentWaypoint] - transform.position).normalized;
+			// Direction to the next waypoint
+			Vector3 dir = (adjustedPos - transform.position).normalized;
 			dir *= speed * Time.fixedDeltaTime;
-			controller.SimpleMove(dir);
+			controller.FeetMove(dir);
 			
-			//Check if we are close enough to the next waypoint
-			//If we are, proceed to follow the next waypoint
-			if (Vector3.Distance (transform.position, path.vectorPath[currentWaypoint]) < nextWaypointDistance) {
-				// @TODO Here is where we determine if we should change to a different follow type
+			// Check if we are close enough to the next waypoint
+			// If we are, proceed to follow the next waypoint
+			if (Vector3.Distance(transform.position, adjustedPos) < nextWaypointDistance) {
+				Log(string.Format("End {0} type: {1}", linkPath.links[currentWaypoint].pos, linkPath.links[currentWaypoint].type));
+
+				// Certain link types will require special move logic
+				Astar.LinkType type = linkPath.links[currentWaypoint].type;
+				if (type == Astar.LinkType.Jump || type == Astar.LinkType.Runoff) {
+					bool jumpValid = jump.SetPos(linkPath.links[currentWaypoint + 1].pos, SkipNode);
+					Log(string.Format("Begin {0} type: {1}", linkPath.links[currentWaypoint + 1].pos, linkPath.links[currentWaypoint + 1].type));
+
+					if (!jumpValid) {
+						LogError("Path raycast failed, destroying path");
+						linkPath = null;
+						return;
+					}
+
+					pause = true;
+
+				} else if (type == Astar.LinkType.Fall) {
+					bool fallValid = fall.SetPos(linkPath.links[currentWaypoint + 1].pos, speed, SkipNode);
+					Log(string.Format("Begin {0} type: {1}", linkPath.links[currentWaypoint + 1].pos, linkPath.links[currentWaypoint + 1].type));
+
+					if (!fallValid) {
+						LogError("Path raycast failed, destroying path");
+						linkPath = null;
+						return;
+					}
+
+					pause = true;
+				}
+
 				currentWaypoint++;
-				return;
 			}
 		}
 	}
