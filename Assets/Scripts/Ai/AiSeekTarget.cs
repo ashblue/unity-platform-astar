@@ -5,20 +5,27 @@ namespace Ai {
 	// Relays mouse position to the seeker so it can be followed on screen
 	public class AiSeekTarget : MonoBehaviour {
 		[SerializeField] bool snapToMouse;
+		[SerializeField] bool snapToClick;
+
 		[SerializeField] bool groundPos;
+		[SerializeField] LayerMask whatIsGround;
 
 		void Update () {
-			if (!snapToMouse) return;
-
-			Vector3 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-			pos.z = 0f;
-			transform.position = pos;
+			if (snapToMouse) SetCamPos();
+			if (snapToClick && Input.GetMouseButtonDown(0)) SetCamPos();
 		}
 
-		public Vector3 GetPos () {
-			if (!groundPos) return transform.position;
-
-			return transform.position;
+		void SetCamPos () {
+			Vector3 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			pos.z = 0f;
+			
+			if (groundPos) {
+				RaycastHit2D hit = Physics2D.Raycast(pos, Vector3.up * -1f, Mathf.Infinity, whatIsGround);
+				if (hit.collider == null) return;
+				transform.position = hit.point;
+			} else {
+				transform.position = pos;
+			}
 		}
 	}
 }
