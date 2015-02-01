@@ -13,10 +13,10 @@ public class JumpController : MonoBehaviour {
 	[Tooltip("How long should the jump take based upon the vertical jump distance")]
 	[SerializeField] AnimationCurve jumpTime = new AnimationCurve(new Keyframe(-10f, 0.85f), new Keyframe(0, 0.55f),  new Keyframe(10f, 0.85f));
 
-	public bool hopping = false;
+	[HideInInspector] public bool hopping = false;
 	
 	void Update() {
-		if (Input.GetMouseButtonDown(0)) {
+		if (debugClick && Input.GetMouseButtonDown(0)) {
 			SetPos(Camera.main.ScreenToWorldPoint(Input.mousePosition));
 		}
 	}
