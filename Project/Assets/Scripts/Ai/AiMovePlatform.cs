@@ -165,7 +165,6 @@ namespace Ai {
 				}
 
 				currentWaypoint++;
-
 			}
 
 			// Direction to the next waypoint
