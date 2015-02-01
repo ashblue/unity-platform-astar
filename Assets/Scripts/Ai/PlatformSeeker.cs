@@ -41,7 +41,9 @@ namespace Pathfinding {
 				}
 
 				if (debug) Debug.Log(string.Format("Node {0} type {1}", p.vectorPath[i].ToString(), type.ToString()));
-				links.Add(new LinkPoint(type, p.vectorPath[i]));
+				Vector3 pos = p.vectorPath[i];
+				pos.z = 0f;
+				links.Add(new LinkPoint(type, pos));
 			}
 
 			// Mark as ready
