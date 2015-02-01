@@ -17,7 +17,7 @@
 sysinfo.txt
 
 # Custom ignores
-Assets/AstarPathfindingProject
-Assets/AstarPathfindingProject.meta
-Assets/SampleAssets
-Assets/SampleAssets.meta
+Project/Assets/AstarPathfindingProject
+Project/Assets/AstarPathfindingProject.meta
+Project/Assets/SampleAssets
+Project/Assets/SampleAssets.meta
