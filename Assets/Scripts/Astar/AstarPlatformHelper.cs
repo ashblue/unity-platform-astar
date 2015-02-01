@@ -46,13 +46,25 @@ namespace Astar {
 		[Header("Debug")]
 		[SerializeField] bool logDetails;
 
-		Dictionary<Pathfinding.GraphNode, PathLink> linkData = new Dictionary<Pathfinding.GraphNode, PathLink>();
+		// To make sure our link data doesn't crash when updating the graph we have to swap it, but only when its ready
+		Dictionary<Pathfinding.GraphNode, PathLink> linkDataStable = new Dictionary<Pathfinding.GraphNode, PathLink>();
+		Dictionary<Pathfinding.GraphNode, PathLink> linkData;
 
 		void Awake () {
 			current = this;
 		}
 
+		public LinkType GetLinkType (Pathfinding.GraphNode n1, Pathfinding.GraphNode n2) {
+			PathLink p = linkDataStable.ContainsKey(n1) ? linkDataStable[n1] : null;
+			if (p != null) {
+				return p.GetLinkType(n2);
+			}
+
+			return LinkType.Undefined;
+		}
+
 		public void CreateLinks (Astar.AstarGraphPlatform graph, List<NodeLedge> nodeLedges) {
+			linkData = new Dictionary<Pathfinding.GraphNode, PathLink>();
 			this.gridGraph = graph;
 
 			// Clean out old links
@@ -125,6 +137,8 @@ namespace Astar {
 			// - max jump distance
 			// These become runoff links with the origin being the end of a jump (one way)
 			// Maybe just make it a 2 way jump?
+			linkDataStable = linkData;
+			linkData = null;
 		}
 
 		void DropLine (NodeLedge l, int xDir) {

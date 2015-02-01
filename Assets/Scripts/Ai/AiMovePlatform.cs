@@ -3,22 +3,38 @@ using System.Collections;
 
 namespace Ai {
 	public class AiMovePlatform : MonoBehaviour {
+		[Tooltip("Target we are getting our destination from")]
 		public Transform targetTransform;
 		[HideInInspector] public Seeker seeker;
 		MoveController controller;
+		Pathfinding.PlatformSeeker platformSeeker;
 		
 		[HideInInspector] public Pathfinding.Path path; //The calculated path
-		[SerializeField] float distanceThreshold = 0.5f; // Minimum move distance
-		public float speed = 100; // The AI's speed per second
-		public float nextWaypointDistance = 3; // The max distance from the AI to a waypoint for it to continue to the next waypoint
-		private int currentWaypoint = 0; // The waypoint we are currently moving towards
+
+		[Tooltip("Minimum move distance")]
+		[SerializeField] float distanceThreshold = 0.5f;
+
+		[Tooltip("The AI's speed per second")]
+		public float speed = 100;
+
+		[Tooltip("The max distance from the AI to a waypoint for it to continue to the next waypoint")]
+		public float nextWaypointDistance = 3;
+
+		int currentWaypoint = 0; // The waypoint we are currently moving towards
 		Vector3 destination = Vector3.zero;
-		
+
+		[Tooltip("Amount of time between updating the destination search")]
 		[SerializeField] float delay = 0.5f;
 		float delayCountdown;
+
+		[Header("Debugging")]
+		bool logPathLinks;
 		
 		void Start () {
+			Pathfinding.LinkPath.debug = logPathLinks;
+
 			seeker = GetComponent<Seeker>();
+			platformSeeker = GetComponent<Pathfinding.PlatformSeeker>();
 			controller = GetComponent<MoveController>();
 			
 			delayCountdown = delay;
@@ -33,13 +49,22 @@ namespace Ai {
 				Debug.Log(p.error);
 			}
 		}
+
+		void OnLinkPathComplete (Pathfinding.LinkPath lp) {
+			if (!lp.error) {
+				Debug.Log("AI script received the path successfully");
+			} else {
+				Debug.LogError("Path failed to properly initialize");
+			}
+		}
 		
 		void Update () {
 			delayCountdown -= Time.deltaTime;
 			if (delayCountdown <= 0f ) {
 				// Minimum distance to prevent buggy movement
 				if (Vector3.Distance(destination, targetTransform.position) > distanceThreshold) {
-					seeker.StartPath(transform.position, targetTransform.position, OnPathComplete);
+//					seeker.StartPath(transform.position, targetTransform.position, OnPathComplete);
+					platformSeeker.GetPath(transform.position, targetTransform.position, OnLinkPathComplete);
 					destination = targetTransform.position;
 				}
 				
