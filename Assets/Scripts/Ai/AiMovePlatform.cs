@@ -128,11 +128,6 @@ namespace Ai {
 			Vector3 adjustedPos = linkPath.links[currentWaypoint].pos;
 			adjustedPos.y = transform.position.y;
 			
-			// Direction to the next waypoint
-			Vector3 dir = (adjustedPos - transform.position).normalized;
-			dir *= speed * Time.fixedDeltaTime;
-			controller.FeetMove(dir);
-			
 			// Check if we are close enough to the next waypoint
 			// If we are, proceed to follow the next waypoint
 			if (Vector3.Distance(transform.position, adjustedPos) < nextWaypointDistance) {
@@ -153,7 +148,7 @@ namespace Ai {
 					pause = true;
 
 				} else if (type == Astar.LinkType.Fall) {
-					bool fallValid = fall.SetPos(linkPath.links[currentWaypoint + 1].pos, speed, SkipNode);
+					bool fallValid = fall.SetPos(linkPath.links[currentWaypoint + 1].pos, speed * 2f, SkipNode);
 					Log(string.Format("Begin {0} type: {1}", linkPath.links[currentWaypoint + 1].pos, linkPath.links[currentWaypoint + 1].type));
 
 					if (!fallValid) {
@@ -166,6 +161,12 @@ namespace Ai {
 				}
 
 				currentWaypoint++;
+
+			} else {
+				// Direction to the next waypoint
+				Vector3 dir = (adjustedPos - transform.position).normalized;
+				dir *= speed * Time.fixedDeltaTime;
+				controller.FeetMove(dir);
 			}
 		}
 	}

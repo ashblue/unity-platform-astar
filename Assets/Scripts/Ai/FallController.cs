@@ -49,17 +49,15 @@ public class FallController : MonoBehaviour {
 			transform.position += dir;
 			yield return null;
 		}
-
+	
 		while (Mathf.Abs(transform.position.y - endPos.y) > 0.1f) {
 			float fallDistance = Vector3.Distance(transform.position, endPos);
 			Vector3 dir = (endPos - transform.position).normalized;
 			dir *= fallSpeed.Evaluate(fallDistance) * Time.fixedDeltaTime;
-			dir.x = 0f;
 			transform.position += dir;
 			yield return null;
 		}
 
-		endPos.x = transform.position.x;
 		transform.position = endPos;
 		
 		if (callback != null) callback();
