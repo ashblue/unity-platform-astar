@@ -36,6 +36,7 @@ namespace Astar {
 
 		[SerializeField] float maxJumpDistance = 10f;
 		[SerializeField] Vector2 runoffAngle;
+		Vector2 runoffAngleLeft;
 
 		[Header("Link Prefabs")]
 		[SerializeField] Transform linkOutput;
@@ -51,6 +52,8 @@ namespace Astar {
 		Dictionary<Pathfinding.GraphNode, PathLink> linkData;
 
 		void Awake () {
+			runoffAngleLeft = runoffAngle;
+			runoffAngleLeft.x *= -1;
 			current = this;
 		}
 
@@ -103,42 +106,32 @@ namespace Astar {
 				if (ledge1.facingLeft) DropLine(ledge1, -1);
 
 				// Ledge runoff
-				// @TODO Needs to be a 2 way link
 				if (ledge1.facingRight) {
-					Vector3 corner = ledge1.pos;
-					corner.x += (gridGraph.nodeSize / 2);
-					corner.y += (gridGraph.nodeSize / 2);
+					RunoffLine(gridGraph, ledge1, new Vector2(gridGraph.nodeSize / 2f, gridGraph.nodeSize / 2f), runoffAngle);
+				}
 
-					RaycastHit2D hit = Physics2D.Raycast(ledge1.pos, runoffAngle, Mathf.Infinity, gridGraph.collision.mask);
-					if (hit.collider != null) {
-						Pathfinding.GraphNode node = gridGraph.GetNeighbor(gridGraph.GetNearest(hit.point).node, 0, 1);
-						if (node.Walkable) {
-							bool withinJumpDistance = Vector3.Distance(ledge1.pos, (Vector3)node.position) < maxJumpDistance;
-							SetLink(LinkType.Runoff, ledge1.node, node, !withinJumpDistance);
-//							Pathfinding.NodeLink runoffLink = SetLink(LinkType.Runoff, ledge1.node, node);
-//							if (Vector3.Distance(ledge1.pos, runoffLink.transform.position) < maxJumpDistance)
-//								runoffLink.oneWay = false;
-						}
-					}
+				if (ledge1.facingLeft) {
+					RunoffLine(gridGraph, ledge1, new Vector2(-gridGraph.nodeSize / 2f, gridGraph.nodeSize / 2f), runoffAngleLeft);
 				}
 			}
-
-			// Attempt a linecast from every discovered ledge to 
-			// - ledges in its facing direction
-			// - within max jump distance
-//			gridGraph.Linecast
-			// These ledges should become jump links going one way
-
-			// Attempt a drop linecast from every discoverd ledge
-			// - max fall distance
-			// These become fall links going one way
-
-			// Attempt ledge runoff linecasts on every discovered ledge
-			// - max jump distance
-			// These become runoff links with the origin being the end of a jump (one way)
-			// Maybe just make it a 2 way jump?
+	
 			linkDataStable = linkData;
 			linkData = null;
+		}
+
+		void RunoffLine (Astar.AstarGraphPlatform graph, NodeLedge l, Vector2 rayOriginOffset, Vector2 rayAngle) {
+			Vector3 corner = l.pos;
+			corner.x = rayOriginOffset.x;
+			corner.y = rayOriginOffset.y;
+
+			RaycastHit2D hit = Physics2D.Raycast(l.pos, rayAngle, Mathf.Infinity, graph.collision.mask);
+			if (hit.collider != null) {
+				Pathfinding.GraphNode node = graph.GetNeighbor(graph.GetNearest(hit.point).node, 0, 1);
+				if (node.Walkable) {
+					bool withinJumpDistance = Vector3.Distance(l.pos, (Vector3)node.position) < maxJumpDistance;
+					SetLink(LinkType.Runoff, l.node, node, !withinJumpDistance);
+				}
+			}
 		}
 
 		void DropLine (NodeLedge l, int xDir) {
