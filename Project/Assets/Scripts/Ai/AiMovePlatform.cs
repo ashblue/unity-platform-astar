@@ -79,7 +79,7 @@ namespace Ai {
 				linkPath = lp;
 				currentWaypoint = 0;
 			} else {
-				Debug.LogError("Path failed to properly initialize");
+				LogError("Path failed to properly initialize");
 			}
 		}
 		
